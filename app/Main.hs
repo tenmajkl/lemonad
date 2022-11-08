@@ -44,29 +44,24 @@ route :: RequestMethod -> String -> (Request -> Response) -> Route
 route method uri = Route uri method
 
 dispatch :: Request -> [Route] -> Response
-dispatch request routes = 
-    case 
-        dispatchByUri request routes
-        >>= dispatchByMethod request
+dispatch request routes =
+    case dispatchByUri request routes
+         >>= dispatchByMethod request
     of 
         Left x -> x
         Right (Route _ _ f) -> f request
 
 dispatchByUri :: Request -> [Route] -> Either Response [Route]
 dispatchByUri (Request _ uri) routes = 
-    if null filtered then
-        Left $ httpError 404
-    else 
-        Right filtered
-    where filtered = filter (\(Route path _ _) -> uri == path) routes
+    case filter (\(Route path _ _) -> uri == path) routes of 
+        [] -> Left $ httpError 404
+        x -> Right x
 
 dispatchByMethod :: Request -> [Route] -> Either Response Route
-dispatchByMethod (Request method _ ) routes = 
-    if null filtered then 
-        Left $ httpError 400
-    else 
-        Right (head filtered)
-    where filtered = filter (\(Route _ rMethod _) -> method == rMethod) routes
+dispatchByMethod (Request method uri) routes = 
+    case filter (\(Route _ rMethod _) -> method == rMethod) routes of 
+        [] -> Left $ httpError 400
+        x -> Right $ head x
 
 lemonad :: [Route] -> IO ()
 lemonad routes = do
